@@ -1,0 +1,15 @@
+﻿<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>Orc.MediaSync.Client</id>
+	<version>1.0.0.0</version>
+    <authors>Stephen Roberts</authors>
+    <owners>Offroadcode</owners>
+    <description>MediaSync Client</description>
+    <copyright>Copyright 2014</copyright>
+  </metadata>
+  <files>
+    <file src="..\Orc.MediaSync.Client\bin\Release\*.dll" target="app" />
+    <file src="..\Orc.MediaSync.Client\bin\Release\MediaSync.exe" target="app" />
+  </files>
+</package>
