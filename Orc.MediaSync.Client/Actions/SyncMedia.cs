@@ -15,15 +15,14 @@ namespace Orc.MediaSync.Client.Actions
 {
     public static class SyncMedia
     {
-        public static void SyncUp(string path, string host, string projectName, string apiKey)
+        public static void SyncUp(MediaServerClient client, string path, string projectName)
         {
-            var mediaClient = new MediaServerClient(host, projectName, apiKey);
-            
+              
             Console.WriteLine("Loading local files");
             var localCollection = MediaItemCollection.PopulateFromPath(path);
 
             Console.WriteLine("Finding remote files");
-            var remoteCollection = mediaClient.GetFiles();
+            var remoteCollection = client.GetFiles(projectName);
 
             Console.WriteLine("Calculating on remote");
             var missingFiles = localCollection.FindMissingFiles(remoteCollection);
@@ -32,10 +31,10 @@ namespace Orc.MediaSync.Client.Actions
             var changedFiles = localCollection.FindChangedFiles(remoteCollection);
 
             Console.WriteLine(missingFiles.Items.Count + " missing, " + changedFiles.Items.Count + " changed");
-            UploadFiles(missingFiles, changedFiles, path, mediaClient);
+            UploadFiles(missingFiles, changedFiles, path, client, projectName);
         }
 
-        private static void UploadFiles(MediaItemCollection missingFiles, MediaItemCollection changedFiles, string path,MediaServerClient mediaClient)
+        private static void UploadFiles(MediaItemCollection missingFiles, MediaItemCollection changedFiles, string path, MediaServerClient mediaClient, string projectName)
         {
             var items = missingFiles.Items;
             items.AddRange(changedFiles.Items);
@@ -47,21 +46,19 @@ namespace Orc.MediaSync.Client.Actions
             {
                 var localPath = path + mediaItem.Filename;
                 Directory.CreateDirectory(Path.GetDirectoryName(localPath));
-                mediaClient.UploadFile(path, mediaItem);
+                mediaClient.UploadFile(path, projectName, mediaItem);
                  done++;
                 UpdateStatus(done, total);
             }
         }
 
-        public static void SyncDown(string path, string host, string projectName, string apiKey)
+        public static void SyncDown(MediaServerClient client, string path, string projectName)
         {
-            var MediaClient = new MediaServerClient(host, projectName, apiKey);
-
             Console.WriteLine("Loading local files");
             var localCollection = MediaItemCollection.PopulateFromPath(path);
 
             Console.WriteLine("Finding remote files");
-            var remoteCollection = MediaClient.GetFiles();
+            var remoteCollection = client.GetFiles(projectName);
 
             Console.WriteLine("Calculating missing");
             var missingFiles = remoteCollection.FindMissingFiles(localCollection);
@@ -70,14 +67,14 @@ namespace Orc.MediaSync.Client.Actions
             var changedFiles = remoteCollection.FindChangedFiles(localCollection);
 
             Console.WriteLine(missingFiles.Items.Count + " missing, " + changedFiles.Items.Count + " changed");
-            DownloadFiles(missingFiles, changedFiles, path, host,projectName);
+            DownloadFiles(missingFiles, changedFiles, client, projectName, path);
         }
 
-        private static void DownloadFiles(MediaItemCollection missingFiles, MediaItemCollection changedFiles, string path, string host, string projectName)
+        private static void DownloadFiles(MediaItemCollection missingFiles, MediaItemCollection changedFiles, MediaServerClient client, string projectName, string path)
         {
             var items = missingFiles.Items;
             items.AddRange(changedFiles.Items);
-            WebClient client = new WebClient();
+           
             var done = 0;
             var total = missingFiles.Items.Count + changedFiles.Items.Count;
             var totalSize = (missingFiles.Items.Sum(x => x.FileSize) + changedFiles.Items.Sum(x => x.FileSize));
@@ -86,25 +83,22 @@ namespace Orc.MediaSync.Client.Actions
             {
                 if (!mediaItem.Filename.EndsWith(".config"))
                 {
+                    
                     var localPath = path + mediaItem.Filename;
                         Directory.CreateDirectory(Path.GetDirectoryName(localPath));
                         var remotePath = HttpUtility.UrlEncode(projectName + "/" + mediaItem.Filename);
-                    var url = host + "api/Media/DownloadFile?file=" + remotePath;
+                    
                     try
                     {
-
-                        var compressed = client.DownloadData(url);
-
+                        var compressed = client.DownloadFile(remotePath);
                         var uncompressed = Compression.Unzip(compressed);
                         File.WriteAllBytes(localPath, uncompressed);
-
-
                         done++;
                         UpdateStatus(done, total);
                     }
                     catch (Exception e)
                     {
-                        Console.WriteLine("Error downloading " + url);
+                        Console.WriteLine("Error downloading " + remotePath);
                     }
                 }
             }

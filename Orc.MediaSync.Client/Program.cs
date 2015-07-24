@@ -21,39 +21,43 @@ namespace Orc.MediaSync.Client
         static void Main(string[] args)
         {
             var filename = "Project.xml";
-        
-            if (args.Any(x=>x.ToLower().StartsWith("filename=")))
+
+            if (args.Any(x => x.ToLower().StartsWith("filename=")))
             {
                 filename = args.First(x => x.ToLower().StartsWith("filename=")).ToLower().Replace("filename=", "");
             }
 
-            Console.WriteLine("Offroadcode MediaSync");
-            
-            var isLatestVersion = Updater.Check();
 
-            if (isLatestVersion)
+
+            if (!File.Exists(filename))
             {
-                if (!File.Exists(filename))
-                {
-                    var defaultcolor = Console.ForegroundColor;
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("No project.xml found!"); 
-                    Console.ForegroundColor = defaultcolor;
-                }
-                else
-                {
-                    LoadProject(filename);
+                var defaultcolor = Console.ForegroundColor;
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("No project.xml found!");
+                Console.ForegroundColor = defaultcolor;
+            }
+            else
+            {
+                Console.WriteLine("Offroadcode MediaSync");
+                Console.WriteLine("Using server " + _host);
+                var client = new MediaServerClient(_host, _apiKey);
 
+                var serverInformation = client.GetServerInformation();
+                Console.WriteLine("Host is using version: " + serverInformation.ServerVersion);
+                var isLatestVersion = Updater.Check(serverInformation);
+
+                if (isLatestVersion)
+                {
                     Console.WriteLine("Project: " + _project);
                     if (args.Contains("up"))
                     {
                         Console.WriteLine("Syncing Up!");
-                        Actions.SyncMedia.SyncUp(_path, _host, _project, _apiKey);
+                        Actions.SyncMedia.SyncUp(client, _path, _project);
                     }
                     else
                     {
                         Console.WriteLine("Syncing Down!");
-                        Actions.SyncMedia.SyncDown(_path, _host, _project, _apiKey);
+                        Actions.SyncMedia.SyncDown(client, _path, _project);
                     }
                 }
             }

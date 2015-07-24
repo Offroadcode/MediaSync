@@ -26,6 +26,16 @@ namespace Orc.MediaSync.Host.Controllers
             var collection = MediaItemCollection.PopulateFromPath(HttpContext.Current.Server.MapPath("~/Projects/" + project));
             return collection;
         }
+        [HttpGet]
+        public ServerInformation Information()
+        {
+            
+            var model = new ServerInformation();
+
+            model.ServerVersion = WebApiApplication.ServerVersion;
+
+            return model;
+        }
 
         [HttpGet]
         public HttpResponseMessage DownloadFile(string file)
